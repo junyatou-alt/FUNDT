@@ -60,6 +60,8 @@
             min-height: 44px;
         }
         .icon-btn:active { background: #e2e8f0; }
+        .icon-btn.danger { border-color: #ef4444; color: #ef4444; }
+        .icon-btn.danger:hover { background: #fef2f2; }
         .icon-btn.spinning {
             animation: spin 1s linear infinite;
         }
@@ -79,11 +81,28 @@
             border-radius: 24px;
             padding: 18px;
             box-shadow: 0 2px 8px rgba(0,0,0,0.05);
-            cursor: pointer;
-            transition: transform 0.1s, box-shadow 0.2s;
             border: 1px solid #edf2f7;
+            position: relative;
         }
-        .fund-card:active { transform: scale(0.98); }
+        .fund-card .card-actions {
+            position: absolute;
+            top: 12px;
+            right: 12px;
+            display: flex;
+            gap: 4px;
+        }
+        .fund-card .card-actions button {
+            background: none;
+            border: none;
+            cursor: pointer;
+            font-size: 0.9rem;
+            padding: 4px 6px;
+            border-radius: 8px;
+            opacity: 0.5;
+            transition: opacity 0.2s;
+        }
+        .fund-card .card-actions button:hover { opacity: 1; }
+        .fund-card .card-actions .del-btn:hover { color: #ef4444; }
         .fund-name {
             font-weight: 700;
             font-size: 1.2rem;
@@ -91,6 +110,7 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
+            padding-right: 60px;
         }
         .fund-code { color: #64748b; font-size: 0.75rem; font-weight: normal; }
         .fund-stats {
@@ -144,6 +164,13 @@
             top: 0;
             background: #f8fafc;
             z-index: 10;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+        .detail-header .left {
+            display: flex;
+            align-items: center;
+            gap: 12px;
         }
         .back-btn {
             background: none;
@@ -171,11 +198,35 @@
         .trade-item {
             display: flex;
             justify-content: space-between;
+            align-items: center;
             padding: 12px 16px;
             border-bottom: 1px solid #ecfdf5;
             flex-wrap: wrap;
             gap: 8px;
         }
+        .trade-item .trade-info {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px 16px;
+            align-items: center;
+        }
+        .trade-item .trade-actions {
+            display: flex;
+            gap: 4px;
+        }
+        .trade-item .trade-actions button {
+            background: none;
+            border: none;
+            cursor: pointer;
+            padding: 4px 6px;
+            border-radius: 6px;
+            font-size: 0.8rem;
+            opacity: 0.5;
+            transition: opacity 0.2s;
+        }
+        .trade-item .trade-actions button:hover { opacity: 1; }
+        .trade-item .trade-actions .edit-btn:hover { color: #1E88E5; }
+        .trade-item .trade-actions .del-btn:hover { color: #ef4444; }
         .trade-buy { border-left: 4px solid #10b981; }
         .trade-sell { border-left: 4px solid #ef4444; }
         .profit-highlight { font-weight: bold; color: #ef4444; }
@@ -234,6 +285,7 @@
             font-weight: bold;
             cursor: pointer;
         }
+        button[type="submit"].danger { background: #ef4444; }
         .hidden { display: none; }
         .empty-state {
             text-align: center;
@@ -259,6 +311,41 @@
             80% { opacity: 1; }
             100% { opacity: 0; visibility: hidden; }
         }
+        .confirm-dialog {
+            display: none;
+            position: fixed;
+            z-index: 3000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            align-items: center;
+            justify-content: center;
+        }
+        .confirm-dialog .dialog-content {
+            background: white;
+            border-radius: 24px;
+            padding: 24px;
+            max-width: 360px;
+            width: 90%;
+            text-align: center;
+        }
+        .confirm-dialog .dialog-actions {
+            display: flex;
+            gap: 12px;
+            margin-top: 20px;
+            justify-content: center;
+        }
+        .confirm-dialog .dialog-actions button {
+            padding: 10px 24px;
+            border: none;
+            border-radius: 20px;
+            font-weight: 600;
+            cursor: pointer;
+        }
+        .confirm-dialog .dialog-actions .btn-confirm { background: #ef4444; color: white; }
+        .confirm-dialog .dialog-actions .btn-cancel { background: #e2e8f0; color: #1e293b; }
         @media (min-width: 768px) and (orientation: landscape) {
             .fund-list { grid-template-columns: repeat(2, 1fr); }
         }
@@ -281,18 +368,25 @@
 
     <div id="detailView" class="detail-view hidden">
         <div class="detail-header">
-            <button id="backToListBtn" class="back-btn">← 返回</button>
-            <h2 id="detailFundName"></h2>
-            <button id="addTradeFromDetailBtn" class="icon-btn">➕</button>
+            <div class="left">
+                <button id="backToListBtn" class="back-btn">←</button>
+                <h2 id="detailFundName"></h2>
+            </div>
+            <div>
+                <button id="addTradeFromDetailBtn" class="icon-btn" title="添加交易">➕</button>
+                <button id="deleteFundBtn" class="icon-btn danger" title="删除基金">🗑️</button>
+            </div>
         </div>
         <div id="detailContent"></div>
     </div>
 
+    <!-- 基金模态框 -->
     <div id="fundModal" class="modal">
         <div class="modal-content">
             <span class="close">&times;</span>
-            <h3>添加基金</h3>
+            <h3 id="fundModalTitle">添加基金</h3>
             <form id="fundForm">
+                <input type="hidden" id="editFundId">
                 <label>基金名称 <input type="text" id="fundName" required placeholder="例如：易方达蓝筹"></label>
                 <label>基金代码 <input type="text" id="fundCode" required placeholder="例如：005827"></label>
                 <div class="form-row">
@@ -312,11 +406,13 @@
         </div>
     </div>
 
+    <!-- 交易模态框 -->
     <div id="tradeModal" class="modal">
         <div class="modal-content">
             <span class="close">&times;</span>
-            <h3>记录交易</h3>
+            <h3 id="tradeModalTitle">记录交易</h3>
             <form id="tradeForm">
+                <input type="hidden" id="editTradeId">
                 <input type="hidden" id="tradeFundId">
                 <label>基金
                     <select id="tradeFundSelect" required></select>
@@ -335,6 +431,18 @@
         </div>
     </div>
 
+    <!-- 确认对话框 -->
+    <div id="confirmDialog" class="confirm-dialog">
+        <div class="dialog-content">
+            <h3 id="confirmTitle">确认删除</h3>
+            <p id="confirmMessage" style="margin-top:12px;color:#64748b;">确定要删除吗？此操作不可撤销。</p>
+            <div class="dialog-actions">
+                <button class="btn-cancel" onclick="closeConfirm()">取消</button>
+                <button class="btn-confirm" id="confirmBtn">确定删除</button>
+            </div>
+        </div>
+    </div>
+
     <script>
         const STORAGE_FUNDS = 'tnote_funds';
         const STORAGE_TRADES = 'tnote_trades';
@@ -343,6 +451,7 @@
         let currentTrades = [];
         let currentDetailFundId = null;
         let isRefreshing = false;
+        let confirmCallback = null;
 
         document.addEventListener('DOMContentLoaded', async () => {
             await loadData();
@@ -443,6 +552,55 @@
             return value >= 0 ? '+' : '';
         }
 
+        // ==================== 删除基金 ====================
+        function deleteFund(fundId) {
+            showConfirm('确认删除基金？', '删除后该基金的所有交易记录也将被删除，此操作不可撤销。', () => {
+                currentFunds = currentFunds.filter(f => f.id != fundId);
+                currentTrades = currentTrades.filter(t => t.fundId != fundId);
+                saveFunds();
+                saveTrades();
+                if (currentDetailFundId == fundId) {
+                    hideDetail();
+                }
+                renderFundList();
+                showToast('🗑️ 已删除基金');
+            });
+        }
+
+        // ==================== 删除交易 ====================
+        function deleteTrade(tradeId) {
+            showConfirm('确认删除交易记录？', '此操作不可撤销。', () => {
+                currentTrades = currentTrades.filter(t => t.id != tradeId);
+                saveTrades();
+                renderFundList();
+                if (currentDetailFundId) {
+                    showFundDetail(currentDetailFundId);
+                }
+                showToast('🗑️ 已删除交易记录');
+            });
+        }
+
+        // ==================== 确认对话框 ====================
+        function showConfirm(title, message, callback) {
+            document.getElementById('confirmTitle').textContent = title;
+            document.getElementById('confirmMessage').textContent = message;
+            document.getElementById('confirmDialog').style.display = 'flex';
+            confirmCallback = callback;
+        }
+
+        function closeConfirm() {
+            document.getElementById('confirmDialog').style.display = 'none';
+            confirmCallback = null;
+        }
+
+        document.getElementById('confirmBtn').addEventListener('click', function() {
+            if (confirmCallback) {
+                confirmCallback();
+            }
+            closeConfirm();
+        });
+
+        // ==================== 渲染基金列表 ====================
         function renderFundList() {
             const container = document.getElementById('fundListContainer');
             if (!container) return;
@@ -461,12 +619,16 @@
                 
                 return `
                     <div class="fund-card" data-id="${fund.id}">
-                        <div class="fund-name">
+                        <div class="card-actions">
+                            <button class="edit-btn" onclick="event.stopPropagation(); openEditFundModal('${fund.id}')" title="编辑基金">✏️</button>
+                            <button class="del-btn" onclick="event.stopPropagation(); deleteFund('${fund.id}')" title="删除基金">🗑️</button>
+                        </div>
+                        <div class="fund-name" onclick="showFundDetail('${fund.id}')">
                             ${escapeHtml(fund.name)} 
                             <span class="fund-code">${fund.code}</span>
                             <span class="status-badge ${isPending ? 'pending' : 'success'}">${isPending ? '待刷新' : '已更新'}</span>
                         </div>
-                        <div class="fund-stats">
+                        <div class="fund-stats" onclick="showFundDetail('${fund.id}')">
                             <div class="stat-item">
                                 <div class="stat-label">📦 份额</div>
                                 <div class="stat-value">${data.totalShares.toFixed(2)}</div>
@@ -484,21 +646,15 @@
                                 <div class="stat-value ${getProfitColor(data.totalAccumulated)}">${getProfitSign(data.totalAccumulated)}${data.totalAccumulated.toFixed(2)}</div>
                             </div>
                         </div>
-                        <div class="net-value-date">
+                        <div class="net-value-date" onclick="showFundDetail('${fund.id}')">
                             📊 净值: ${nav.toFixed(4)} ${isPending ? '<span class="pending">(待刷新)</span>' : `(${fund.netDate})`}
                         </div>
                     </div>
                 `;
             }).join('');
-            
-            document.querySelectorAll('.fund-card').forEach(card => {
-                card.addEventListener('click', (e) => {
-                    const id = card.getAttribute('data-id');
-                    showFundDetail(id);
-                });
-            });
         }
 
+        // ==================== 基金详情 ====================
         function showFundDetail(fundId) {
             const fund = currentFunds.find(f => f.id == fundId);
             if (!fund) return;
@@ -519,9 +675,15 @@
                 }
                 return `
                     <div class="trade-item ${isSell ? 'trade-sell' : 'trade-buy'}">
-                        <span>📅 ${t.date}</span>
-                        <span>${t.type === 'buy' ? '买入' : '卖出'} ${t.shares.toFixed(2)}份 @ ${t.price.toFixed(4)}</span>
-                        ${profitHtml}
+                        <div class="trade-info">
+                            <span>📅 ${t.date}</span>
+                            <span>${t.type === 'buy' ? '买入' : '卖出'} ${t.shares.toFixed(2)}份 @ ${t.price.toFixed(4)}</span>
+                            ${profitHtml}
+                        </div>
+                        <div class="trade-actions">
+                            <button class="edit-btn" onclick="openEditTradeModal('${t.id}')" title="编辑">✏️</button>
+                            <button class="del-btn" onclick="deleteTrade('${t.id}')" title="删除">🗑️</button>
+                        </div>
                     </div>
                 `;
             }).join('');
@@ -552,6 +714,86 @@
             document.getElementById('detailView').classList.add('hidden');
             document.getElementById('appContainer').style.display = 'block';
             renderFundList();
+        }
+
+        // ==================== 编辑基金 ====================
+        function openEditFundModal(fundId) {
+            const fund = currentFunds.find(f => f.id == fundId);
+            if (!fund) return;
+            
+            document.getElementById('fundModalTitle').textContent = '编辑基金';
+            document.getElementById('editFundId').value = fund.id;
+            document.getElementById('fundName').value = fund.name;
+            document.getElementById('fundCode').value = fund.code;
+            document.getElementById('initShares').value = fund.baseShares || 0;
+            document.getElementById('initAvgCost').value = fund.baseAvgCost || 0;
+            document.getElementById('initHoldingProfit').value = fund.initialHoldingProfit || 0;
+            document.getElementById('initAccumulatedProfit').value = fund.initialAccumulatedProfit || 0;
+            document.getElementById('fundModal').style.display = 'flex';
+        }
+
+        function saveFundEdit(id, name, code, shares, avgCost, holdingProfit, accumProfit) {
+            const fund = currentFunds.find(f => f.id == id);
+            if (!fund) return;
+            fund.name = name;
+            fund.code = code;
+            fund.baseShares = parseFloat(shares) || 0;
+            fund.baseAvgCost = parseFloat(avgCost) || 0;
+            fund.initialHoldingProfit = parseFloat(holdingProfit) || 0;
+            fund.initialAccumulatedProfit = parseFloat(accumProfit) || 0;
+            saveFunds();
+            renderFundList();
+            if (currentDetailFundId == id) showFundDetail(id);
+            showToast('✅ 基金已更新');
+        }
+
+        // ==================== 编辑交易 ====================
+        function openEditTradeModal(tradeId) {
+            const trade = currentTrades.find(t => t.id == tradeId);
+            if (!trade) return;
+            
+            document.getElementById('tradeModalTitle').textContent = '编辑交易';
+            document.getElementById('editTradeId').value = trade.id;
+            document.getElementById('tradeFundId').value = trade.fundId;
+            document.getElementById('tradeFundSelect').value = trade.fundId;
+            document.getElementById('tradeType').value = trade.type;
+            document.getElementById('tradeDate').value = trade.date;
+            document.getElementById('tradeShares').value = trade.shares;
+            document.getElementById('tradePrice').value = trade.price;
+            document.getElementById('tradeModal').style.display = 'flex';
+        }
+
+        function saveTradeEdit(id, fundId, type, date, shares, price) {
+            const trade = currentTrades.find(t => t.id == id);
+            if (!trade) return;
+            
+            // 如果是卖出，重新计算盈亏
+            let profit = trade.profit;
+            if (type === 'sell') {
+                const nav = 1.0;
+                const data = getFundFullData(fundId, nav);
+                // 简化处理：编辑时重新计算盈亏
+                const fund = currentFunds.find(f => f.id == fundId);
+                if (fund) {
+                    const fullData = getFundFullData(fundId, fund.netValue || 1.0);
+                    // 使用当前平均成本计算
+                    profit = parseFloat(shares) * (parseFloat(price) - fullData.avgCost);
+                }
+            } else {
+                profit = null;
+            }
+            
+            trade.fundId = fundId;
+            trade.type = type;
+            trade.date = date;
+            trade.shares = parseFloat(shares);
+            trade.price = parseFloat(price);
+            trade.profit = profit;
+            
+            saveTrades();
+            renderFundList();
+            if (currentDetailFundId == fundId) showFundDetail(fundId);
+            showToast('✅ 交易已更新');
         }
 
         // ==================== JSONP 抓取净值 ====================
@@ -747,20 +989,28 @@
 
         // ==================== 事件绑定 ====================
         function bindEvents() {
+            // 添加基金
             document.getElementById('addFundBtn').onclick = () => {
-                document.getElementById('fundModal').style.display = 'flex';
+                document.getElementById('fundModalTitle').textContent = '添加基金';
+                document.getElementById('editFundId').value = '';
                 document.getElementById('fundForm').reset();
                 document.getElementById('initShares').value = '0';
                 document.getElementById('initAvgCost').value = '0';
                 document.getElementById('initHoldingProfit').value = '0';
                 document.getElementById('initAccumulatedProfit').value = '0';
+                document.getElementById('fundModal').style.display = 'flex';
             };
+            
             document.getElementById('refreshNetValueBtn').onclick = () => refreshAllNetValues();
             document.getElementById('backToListBtn').onclick = () => hideDetail();
             document.getElementById('addTradeFromDetailBtn').onclick = () => {
                 if (currentDetailFundId) openTradeModal(currentDetailFundId);
             };
+            document.getElementById('deleteFundBtn').onclick = () => {
+                if (currentDetailFundId) deleteFund(currentDetailFundId);
+            };
             
+            // 模态框关闭
             const modals = document.querySelectorAll('.modal');
             const closeSpans = document.querySelectorAll('.close');
             closeSpans.forEach(span => {
@@ -771,26 +1021,35 @@
                     e.target.style.display = 'none'; 
             };
             
+            // 基金表单
             document.getElementById('fundForm').onsubmit = (e) => {
                 e.preventDefault();
+                const editId = document.getElementById('editFundId').value;
                 const name = document.getElementById('fundName').value;
                 const code = document.getElementById('fundCode').value;
-                const initShares = parseFloat(document.getElementById('initShares').value) || 0;
-                const initAvgCost = parseFloat(document.getElementById('initAvgCost').value) || 0;
-                const initHoldingProfit = parseFloat(document.getElementById('initHoldingProfit').value) || 0;
-                const initAccumulatedProfit = parseFloat(document.getElementById('initAccumulatedProfit').value) || 0;
+                const shares = parseFloat(document.getElementById('initShares').value) || 0;
+                const avgCost = parseFloat(document.getElementById('initAvgCost').value) || 0;
+                const holdingProfit = parseFloat(document.getElementById('initHoldingProfit').value) || 0;
+                const accumProfit = parseFloat(document.getElementById('initAccumulatedProfit').value) || 0;
                 
                 if (!name || !code) {
                     alert('请填写基金名称和代码');
                     return;
                 }
-                addFund(name, code, initShares, initAvgCost, initHoldingProfit, initAccumulatedProfit);
+                
+                if (editId) {
+                    saveFundEdit(editId, name, code, shares, avgCost, holdingProfit, accumProfit);
+                } else {
+                    addFund(name, code, shares, avgCost, holdingProfit, accumProfit);
+                }
                 document.getElementById('fundModal').style.display = 'none';
                 e.target.reset();
             };
             
+            // 交易表单
             document.getElementById('tradeForm').onsubmit = (e) => {
                 e.preventDefault();
+                const editId = document.getElementById('editTradeId').value;
                 const fundId = document.getElementById('tradeFundId').value;
                 const type = document.getElementById('tradeType').value;
                 const date = document.getElementById('tradeDate').value;
@@ -809,14 +1068,24 @@
                     alert('请输入有效的单价');
                     return;
                 }
-                if (addTrade(fundId, type, date, shares, price)) {
-                    document.getElementById('tradeModal').style.display = 'none';
-                    e.target.reset();
+                
+                if (editId) {
+                    saveTradeEdit(editId, fundId, type, date, shares, price);
+                } else {
+                    if (addTrade(fundId, type, date, shares, price)) {
+                        document.getElementById('tradeModal').style.display = 'none';
+                        e.target.reset();
+                    }
                 }
+                document.getElementById('tradeModal').style.display = 'none';
+                e.target.reset();
             };
         }
         
         function openTradeModal(fundId = null) {
+            document.getElementById('tradeModalTitle').textContent = '记录交易';
+            document.getElementById('editTradeId').value = '';
+            
             const select = document.getElementById('tradeFundSelect');
             select.innerHTML = currentFunds.map(f => `<option value="${f.id}">${escapeHtml(f.name)}</option>`).join('');
             if (fundId) {
@@ -829,6 +1098,8 @@
                 document.getElementById('tradeFundId').value = select.value;
             };
             document.getElementById('tradeDate').value = new Date().toISOString().slice(0,10);
+            document.getElementById('tradeForm').reset();
+            document.getElementById('tradeType').value = 'buy';
             document.getElementById('tradeModal').style.display = 'flex';
         }
         
